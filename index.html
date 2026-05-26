@@ -39,6 +39,7 @@
       transition: opacity 0.15s;
       max-width: 260px;
       border: 1px solid rgba(255, 255, 255, 0.1);
+      z-index: 10;
     }
     #pc-legend {
       display: flex;
@@ -90,8 +91,6 @@
     const M_PER_MI = 1609.344;
 
     function formatDistance(meters) {
-      // Under 0.2 mi (about 1056 ft) → feet, rounded to nearest 10.
-      // 0.2 mi and above → miles, one decimal.
       const miles = meters / M_PER_MI;
       if (miles < 0.2) {
         return `${Math.round((meters / M_PER_FT) / 10) * 10} ft`;
@@ -104,7 +103,6 @@
     const innerW = W - margin.left - margin.right;
     const innerH = H - margin.top - margin.bottom;
 
-    // 4500m ≈ 2.8 mi — keeps the Greenwood and North Delridge outliers in view.
     const maxVal = 4500;
     function yScale(v) {
       return margin.top + innerH - (Math.sqrt(v) / Math.sqrt(maxVal)) * innerH;
@@ -113,7 +111,6 @@
       return margin.left + (i / (axes.length - 1)) * innerW;
     }
 
-    // EB450E color scheme: vivid orange-red (rank 1) → light peach (rank 20)
     function colorFor(rank) {
       const t = (rank - 1) / 19;
       const start = [235, 69, 14];
@@ -125,17 +122,7 @@
     const svg = document.getElementById("pc-svg");
     const NS = "http://www.w3.org/2000/svg";
 
-    // Tick values in METERS, chosen to render as clean US units.
-    const tickValuesMeters = [
-      0,            // 0 ft
-      76.2,         // 250 ft
-      152.4,        // 500 ft
-      304.8,        // 1000 ft
-      402.336,      // 0.25 mi
-      804.672,      // 0.5 mi
-      1609.344,     // 1 mi
-      3218.688,     // 2 mi
-    ];
+    const tickValuesMeters = [0, 76.2, 152.4, 304.8, 402.336, 804.672, 1609.344, 3218.688];
 
     axes.forEach((axis, i) => {
       const x = xScale(i);
@@ -183,7 +170,61 @@
     const container = document.getElementById("pc-container");
     let selectedRank = null;
 
+    function buildTooltipHTML(site) {
+      return `<div style="font-weight:600;margin-bottom:4px;color:#ffffff;">#${site.rank}. ${site.label}</div>
+        <div style="opacity:0.75;margin-bottom:6px;">${site.reports.toLocaleString()} reports</div>
+        ${axes.map(a => {
+          const v = site[a];
+          return `<div>${a}: <span style="font-variant-numeric:tabular-nums;">${formatDistance(v)}</span></div>`;
+        }).join("")}`;
+    }
+
+    // Convert an SVG-coordinate point to a pixel position inside the container
+    function svgPointToContainer(svgX, svgY) {
+      const svgRect = svg.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const scaleX = svgRect.width / W;
+      const scaleY = svgRect.height / H;
+      return {
+        x: (svgRect.left - containerRect.left) + svgX * scaleX,
+        y: (svgRect.top - containerRect.top) + svgY * scaleY,
+      };
+    }
+
+    // Position tooltip near a chosen anchor on the line, keeping it inside the container
+    function positionTooltipAtSite(site) {
+      // Anchor at the line's first point (Transit axis), but offset to the right
+      const anchorSvgX = xScale(0);
+      const anchorSvgY = yScale(site[axes[0]]);
+      const { x, y } = svgPointToContainer(anchorSvgX, anchorSvgY);
+
+      // Show first to measure
+      tooltip.style.opacity = 1;
+      const tipRect = tooltip.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+
+      // Default: place to the right of the anchor
+      let tipX = x + 16;
+      let tipY = y - tipRect.height / 2;
+
+      // Clamp to container bounds
+      const maxX = containerRect.width - tipRect.width - 8;
+      if (tipX > maxX) tipX = Math.max(8, x - tipRect.width - 16); // flip left
+      if (tipY < 8) tipY = 8;
+      const maxY = containerRect.height - tipRect.height - 8;
+      if (tipY > maxY) tipY = maxY;
+
+      tooltip.style.left = tipX + "px";
+      tooltip.style.top  = tipY + "px";
+    }
+
     const linePaths = [];
+
+    // Two-pass approach so all visible lines render before the invisible hit areas,
+    // but hit areas sit on top to catch clicks/hovers anywhere within ~14px of the line.
+    const visiblePaths = [];
+    const lineData = [];
+
     sites.forEach(site => {
       const points = axes.map((a, i) => [xScale(i), yScale(site[a])]);
       const d = "M " + points.map(p => p.join(",")).join(" L ");
@@ -196,48 +237,67 @@
       path.setAttribute("stroke-opacity", 0.7);
       path.setAttribute("stroke-linecap", "round");
       path.setAttribute("stroke-linejoin", "round");
-      path.style.cursor = "pointer";
       path.style.transition = "stroke-width 0.15s, stroke-opacity 0.15s";
+      path.style.pointerEvents = "none"; // hit area handles all input
       path.dataset.rank = site.rank;
       svg.appendChild(path);
+      visiblePaths.push(path);
       linePaths.push(path);
+      lineData.push({ site, d });
+    });
 
-      path.addEventListener("mouseenter", () => {
-        if (selectedRank !== null && selectedRank !== site.rank) return;
-        path.setAttribute("stroke-width", 3.5);
-        path.setAttribute("stroke-opacity", 1);
-        const tipHTML = `<div style="font-weight:600;margin-bottom:4px;color:#ffffff;">#${site.rank}. ${site.label}</div>
-          <div style="opacity:0.75;margin-bottom:6px;">${site.reports.toLocaleString()} reports</div>
-          ${axes.map(a => {
-            const v = site[a];
-            return `<div>${a}: <span style="font-variant-numeric:tabular-nums;">${formatDistance(v)}</span></div>`;
-          }).join("")}`;
-        tooltip.innerHTML = tipHTML;
+    // Hit areas — invisible thick strokes drawn on top, capture all pointer events
+    lineData.forEach(({ site, d }) => {
+      const hit = document.createElementNS(NS, "path");
+      hit.setAttribute("d", d);
+      hit.setAttribute("fill", "none");
+      hit.setAttribute("stroke", "transparent");
+      hit.setAttribute("stroke-width", 28); // wide click target
+      hit.setAttribute("stroke-linecap", "round");
+      hit.setAttribute("stroke-linejoin", "round");
+      hit.style.cursor = "pointer";
+      hit.dataset.rank = site.rank;
+      svg.appendChild(hit);
+
+      // Reference to this site's visible path
+      const visible = visiblePaths.find(p => parseInt(p.dataset.rank) === site.rank);
+
+      hit.addEventListener("mouseenter", () => {
+        if (selectedRank !== null) return;
+        visible.setAttribute("stroke-width", 3.5);
+        visible.setAttribute("stroke-opacity", 1);
+        tooltip.innerHTML = buildTooltipHTML(site);
         tooltip.style.opacity = 1;
       });
-      path.addEventListener("mousemove", (e) => {
+      hit.addEventListener("mousemove", (e) => {
+        if (selectedRank !== null) return;
         const rect = container.getBoundingClientRect();
         const x = e.clientX - rect.left + 14;
         const y = e.clientY - rect.top + 14;
-        tooltip.style.left = Math.min(x, rect.width - 280) + "px";
-        tooltip.style.top = y + "px";
+        const tipRect = tooltip.getBoundingClientRect();
+        const maxX = rect.width - tipRect.width - 8;
+        tooltip.style.left = Math.min(x, maxX) + "px";
+        tooltip.style.top  = y + "px";
       });
-      path.addEventListener("mouseleave", () => {
-        if (selectedRank === site.rank) return;
-        path.setAttribute("stroke-width", 2);
-        path.setAttribute("stroke-opacity", selectedRank === null ? 0.7 : 0.12);
+      hit.addEventListener("mouseleave", () => {
+        if (selectedRank !== null) return;
+        visible.setAttribute("stroke-width", 2);
+        visible.setAttribute("stroke-opacity", 0.7);
         tooltip.style.opacity = 0;
       });
-      path.addEventListener("click", () => {
+
+      hit.addEventListener("click", (e) => {
+        e.stopPropagation();
         if (selectedRank === site.rank) {
           selectedRank = null;
-          linePaths.forEach(p => {
+          visiblePaths.forEach(p => {
             p.setAttribute("stroke-width", 2);
             p.setAttribute("stroke-opacity", 0.7);
           });
+          tooltip.style.opacity = 0;
         } else {
           selectedRank = site.rank;
-          linePaths.forEach(p => {
+          visiblePaths.forEach(p => {
             const r = parseInt(p.dataset.rank);
             if (r === selectedRank) {
               p.setAttribute("stroke-width", 3.5);
@@ -247,8 +307,28 @@
               p.setAttribute("stroke-opacity", 0.12);
             }
           });
+          tooltip.innerHTML = buildTooltipHTML(site);
+          positionTooltipAtSite(site);
         }
       });
+    });
+
+    // Clicking empty space (anywhere outside a line) deselects
+    svg.addEventListener("click", () => {
+      if (selectedRank === null) return;
+      selectedRank = null;
+      linePaths.forEach(p => {
+        p.setAttribute("stroke-width", 2);
+        p.setAttribute("stroke-opacity", 0.7);
+      });
+      tooltip.style.opacity = 0;
+    });
+
+    // Reposition pinned tooltip on resize
+    window.addEventListener("resize", () => {
+      if (selectedRank === null) return;
+      const site = sites.find(s => s.rank === selectedRank);
+      if (site) positionTooltipAtSite(site);
     });
 
     const legend = document.getElementById("pc-legend");
