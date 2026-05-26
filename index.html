@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Top 20 Encampment Sites — Distance Profile</title>
+  <title>Top 20 Encampment Sites</title>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -16,17 +16,6 @@
     main {
       max-width: 1100px;
       margin: 0 auto;
-    }
-    h1 {
-      font-size: 16px;
-      font-weight: 500;
-      margin: 0 0 4px;
-      color: #ffffff;
-    }
-    .subhead {
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.65);
-      margin: 0 0 1.25rem;
     }
     #pc-container {
       position: relative;
@@ -59,62 +48,63 @@
       font-size: 11px;
       color: rgba(255, 255, 255, 0.65);
     }
-    .footnote {
-      margin: 16px 0 0;
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.65);
-      line-height: 1.55;
-    }
   </style>
 </head>
 <body>
   <main>
-    <header>
-      <h1>Top 20 most-reported encampment sites — distance profile across utilities</h1>
-      <p class="subhead">Each line is one site. Lower on the axis = closer to that utility. Click a line to highlight it.</p>
-    </header>
-
     <div id="pc-container">
-      <svg id="pc-svg" viewBox="0 0 900 480" role="img" aria-label="Parallel coordinates chart showing the distance from each of the top 20 encampment sites to five utility types."></svg>
+      <svg id="pc-svg" viewBox="0 0 900 480" role="img" aria-label="Parallel coordinates chart showing the distance from each of the top 20 encampment sites to four utility types."></svg>
       <div id="pc-tooltip"></div>
     </div>
-
     <div id="pc-legend"></div>
-
-    <p class="footnote">Lines clustered low on the left (Transit, Food, Park) show consistent close access. Lines that spike up on Shelter or Restroom reveal sites where those services are far away. Hover any line for details; click to isolate.</p>
   </main>
 
   <script>
+    // Distances stored in METERS (source data); converted to US units for display.
     const sites = [
-      { rank: 1,  label: "Capitol Hill — Boylston Ave E",       reports: 1322, Transit: 161, Food: 230, Park: 13,  Shelter: 773,  Restroom: 682  },
-      { rank: 2,  label: "Olympic Hills — Lake City Way NE",    reports: 1286, Transit: 28,  Food: 148, Park: 0,   Shelter: 505,  Restroom: 1412 },
-      { rank: 3,  label: "Capitol Hill — Federal Ave E",        reports: 1104, Transit: 127, Food: 115, Park: 367, Shelter: 861,  Restroom: 758  },
-      { rank: 4,  label: "Belltown — 2nd Ave",                  reports: 1035, Transit: 88,  Food: 155, Park: 223, Shelter: 143,  Restroom: 657  },
-      { rank: 5,  label: "Greenwood — N 87th St",               reports: 821,  Transit: 173, Food: 545, Park: 328, Shelter: 3270, Restroom: 377  },
-      { rank: 6,  label: "Capitol Hill — University St",        reports: 807,  Transit: 78,  Food: 262, Park: 5,   Shelter: 573,  Restroom: 693  },
-      { rank: 7,  label: "North Delridge — 35th Ave SW",        reports: 766,  Transit: 94,  Food: 833, Park: 86,  Shelter: 4443, Restroom: 530  },
-      { rank: 8,  label: "Olympic Hills — 27th Ave NE",         reports: 681,  Transit: 83,  Food: 54,  Park: 12,  Shelter: 731,  Restroom: 1553 },
-      { rank: 9,  label: "Ballard — NW 50th St",                reports: 667,  Transit: 112, Food: 369, Park: 557, Shelter: 217,  Restroom: 759  },
-      { rank: 10, label: "Capitol Hill — Summit Ave E",         reports: 592,  Transit: 49,  Food: 448, Park: 21,  Shelter: 304,  Restroom: 564  },
-      { rank: 11, label: "Central Area — E Howell St",          reports: 591,  Transit: 85,  Food: 259, Park: 60,  Shelter: 1003, Restroom: 560  },
-      { rank: 12, label: "Ballard — 22nd Ave NW",               reports: 578,  Transit: 144, Food: 105, Park: 12,  Shelter: 588,  Restroom: 47   },
-      { rank: 13, label: "Ballard — 8th Ave NW",                reports: 555,  Transit: 120, Food: 746, Park: 392, Shelter: 1293, Restroom: 381  },
-      { rank: 14, label: "Capitol Hill — Bellevue Ave E",       reports: 508,  Transit: 57,  Food: 445, Park: 1,   Shelter: 443,  Restroom: 435  },
-      { rank: 15, label: "Queen Anne — Roy St",                 reports: 500,  Transit: 83,  Food: 665, Park: 242, Shelter: 748,  Restroom: 1237 },
-      { rank: 16, label: "North Beacon Hill — Sturgus Ave S",   reports: 465,  Transit: 206, Food: 487, Park: 12,  Shelter: 632,  Restroom: 652  },
-      { rank: 17, label: "Whittier Heights — Mary Ave NW",      reports: 458,  Transit: 82,  Food: 564, Park: 42,  Shelter: 2577, Restroom: 817  },
-      { rank: 18, label: "Pioneer Square — S Main St",          reports: 406,  Transit: 143, Food: 177, Park: 147, Shelter: 410,  Restroom: 932  },
-      { rank: 19, label: "Queen Anne — Queen Anne Ave N",       reports: 400,  Transit: 62,  Food: 404, Park: 246, Shelter: 84,   Restroom: 877  },
-      { rank: 20, label: "Queen Anne — Roy St (E)",             reports: 394,  Transit: 100, Food: 589, Park: 3,   Shelter: 260,  Restroom: 832  },
+      { rank: 1,  label: "Capitol Hill — Boylston Ave E",       reports: 1322, Transit: 161, Food: 230, Park: 13,  Shelter: 773  },
+      { rank: 2,  label: "Olympic Hills — Lake City Way NE",    reports: 1286, Transit: 28,  Food: 148, Park: 0,   Shelter: 505  },
+      { rank: 3,  label: "Capitol Hill — Federal Ave E",        reports: 1104, Transit: 127, Food: 115, Park: 367, Shelter: 861  },
+      { rank: 4,  label: "Belltown — 2nd Ave",                  reports: 1035, Transit: 88,  Food: 155, Park: 223, Shelter: 143  },
+      { rank: 5,  label: "Greenwood — N 87th St",               reports: 821,  Transit: 173, Food: 545, Park: 328, Shelter: 3270 },
+      { rank: 6,  label: "Capitol Hill — University St",        reports: 807,  Transit: 78,  Food: 262, Park: 5,   Shelter: 573  },
+      { rank: 7,  label: "North Delridge — 35th Ave SW",        reports: 766,  Transit: 94,  Food: 833, Park: 86,  Shelter: 4443 },
+      { rank: 8,  label: "Olympic Hills — 27th Ave NE",         reports: 681,  Transit: 83,  Food: 54,  Park: 12,  Shelter: 731  },
+      { rank: 9,  label: "Ballard — NW 50th St",                reports: 667,  Transit: 112, Food: 369, Park: 557, Shelter: 217  },
+      { rank: 10, label: "Capitol Hill — Summit Ave E",         reports: 592,  Transit: 49,  Food: 448, Park: 21,  Shelter: 304  },
+      { rank: 11, label: "Central Area — E Howell St",          reports: 591,  Transit: 85,  Food: 259, Park: 60,  Shelter: 1003 },
+      { rank: 12, label: "Ballard — 22nd Ave NW",               reports: 578,  Transit: 144, Food: 105, Park: 12,  Shelter: 588  },
+      { rank: 13, label: "Ballard — 8th Ave NW",                reports: 555,  Transit: 120, Food: 746, Park: 392, Shelter: 1293 },
+      { rank: 14, label: "Capitol Hill — Bellevue Ave E",       reports: 508,  Transit: 57,  Food: 445, Park: 1,   Shelter: 443  },
+      { rank: 15, label: "Queen Anne — Roy St",                 reports: 500,  Transit: 83,  Food: 665, Park: 242, Shelter: 748  },
+      { rank: 16, label: "North Beacon Hill — Sturgus Ave S",   reports: 465,  Transit: 206, Food: 487, Park: 12,  Shelter: 632  },
+      { rank: 17, label: "Whittier Heights — Mary Ave NW",      reports: 458,  Transit: 82,  Food: 564, Park: 42,  Shelter: 2577 },
+      { rank: 18, label: "Pioneer Square — S Main St",          reports: 406,  Transit: 143, Food: 177, Park: 147, Shelter: 410  },
+      { rank: 19, label: "Queen Anne — Queen Anne Ave N",       reports: 400,  Transit: 62,  Food: 404, Park: 246, Shelter: 84   },
+      { rank: 20, label: "Queen Anne — Roy St (E)",             reports: 394,  Transit: 100, Food: 589, Park: 3,   Shelter: 260  },
     ];
 
-    const axes = ["Transit", "Food", "Park", "Shelter", "Restroom"];
+    const axes = ["Transit", "Food", "Park", "Shelter"];
+
+    const M_PER_FT = 0.3048;
+    const M_PER_MI = 1609.344;
+
+    function formatDistance(meters) {
+      // Under 0.2 mi (about 1056 ft) → feet, rounded to nearest 10.
+      // 0.2 mi and above → miles, one decimal.
+      const miles = meters / M_PER_MI;
+      if (miles < 0.2) {
+        return `${Math.round((meters / M_PER_FT) / 10) * 10} ft`;
+      }
+      return `${miles.toFixed(1)} mi`;
+    }
 
     const W = 900, H = 480;
     const margin = { top: 40, right: 60, bottom: 60, left: 70 };
     const innerW = W - margin.left - margin.right;
     const innerH = H - margin.top - margin.bottom;
 
+    // 4500m ≈ 2.8 mi — keeps the Greenwood and North Delridge outliers in view.
     const maxVal = 4500;
     function yScale(v) {
       return margin.top + innerH - (Math.sqrt(v) / Math.sqrt(maxVal)) * innerH;
@@ -123,12 +113,11 @@
       return margin.left + (i / (axes.length - 1)) * innerW;
     }
 
-    // EB450E color scheme — gradient from dark deep red to light coral, based on rank
+    // EB450E color scheme: vivid orange-red (rank 1) → light peach (rank 20)
     function colorFor(rank) {
       const t = (rank - 1) / 19;
-      // Interpolate from #EB450E (vivid orange-red) at rank 1 to #FFB394 (light peach) at rank 20
-      const start = [235, 69, 14];   // #EB450E
-      const end   = [255, 179, 148]; // #FFB394
+      const start = [235, 69, 14];
+      const end   = [255, 179, 148];
       const c = start.map((s, i) => Math.round(s + (end[i] - s) * t));
       return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
     }
@@ -136,11 +125,21 @@
     const svg = document.getElementById("pc-svg");
     const NS = "http://www.w3.org/2000/svg";
 
-    const tickValues = [0, 100, 250, 500, 1000, 2000, 4000];
+    // Tick values in METERS, chosen to render as clean US units.
+    const tickValuesMeters = [
+      0,            // 0 ft
+      76.2,         // 250 ft
+      152.4,        // 500 ft
+      304.8,        // 1000 ft
+      402.336,      // 0.25 mi
+      804.672,      // 0.5 mi
+      1609.344,     // 1 mi
+      3218.688,     // 2 mi
+    ];
+
     axes.forEach((axis, i) => {
       const x = xScale(i);
 
-      // Vertical axis line — light white
       const line = document.createElementNS(NS, "line");
       line.setAttribute("x1", x); line.setAttribute("x2", x);
       line.setAttribute("y1", margin.top); line.setAttribute("y2", margin.top + innerH);
@@ -148,7 +147,7 @@
       line.setAttribute("stroke-width", 1);
       svg.appendChild(line);
 
-      tickValues.forEach(v => {
+      tickValuesMeters.forEach(v => {
         const y = yScale(v);
         const tick = document.createElementNS(NS, "line");
         tick.setAttribute("x1", x - 4); tick.setAttribute("x2", x + 4);
@@ -164,12 +163,11 @@
           txt.setAttribute("text-anchor", "end");
           txt.setAttribute("font-size", "10");
           txt.setAttribute("fill", "rgba(255, 255, 255, 0.75)");
-          txt.textContent = v === 0 ? "0m" : (v >= 1000 ? (v/1000) + "km" : v + "m");
+          txt.textContent = formatDistance(v);
           svg.appendChild(txt);
         }
       });
 
-      // Axis title — white
       const title = document.createElementNS(NS, "text");
       title.setAttribute("x", x);
       title.setAttribute("y", margin.top - 14);
@@ -180,36 +178,6 @@
       title.textContent = axis;
       svg.appendChild(title);
     });
-
-    // Y axis label — white
-    const yLabel = document.createElementNS(NS, "text");
-    yLabel.setAttribute("x", 20);
-    yLabel.setAttribute("y", margin.top + innerH / 2);
-    yLabel.setAttribute("text-anchor", "middle");
-    yLabel.setAttribute("font-size", "11");
-    yLabel.setAttribute("fill", "rgba(255, 255, 255, 0.75)");
-    yLabel.setAttribute("transform", `rotate(-90, 20, ${margin.top + innerH / 2})`);
-    yLabel.textContent = "Distance to nearest (closer = lower)";
-    svg.appendChild(yLabel);
-
-    // closer / farther hints — white
-    const closer = document.createElementNS(NS, "text");
-    closer.setAttribute("x", margin.left - 42);
-    closer.setAttribute("y", margin.top + innerH + 4);
-    closer.setAttribute("font-size", "10");
-    closer.setAttribute("fill", "rgba(255, 255, 255, 0.65)");
-    closer.setAttribute("font-style", "italic");
-    closer.textContent = "closer";
-    svg.appendChild(closer);
-
-    const farther = document.createElementNS(NS, "text");
-    farther.setAttribute("x", margin.left - 42);
-    farther.setAttribute("y", margin.top + 4);
-    farther.setAttribute("font-size", "10");
-    farther.setAttribute("fill", "rgba(255, 255, 255, 0.65)");
-    farther.setAttribute("font-style", "italic");
-    farther.textContent = "farther";
-    svg.appendChild(farther);
 
     const tooltip = document.getElementById("pc-tooltip");
     const container = document.getElementById("pc-container");
@@ -242,8 +210,7 @@
           <div style="opacity:0.75;margin-bottom:6px;">${site.reports.toLocaleString()} reports</div>
           ${axes.map(a => {
             const v = site[a];
-            const fmt = v >= 1000 ? (v/1000).toFixed(1) + " km" : v + " m";
-            return `<div>${a}: <span style="font-variant-numeric:tabular-nums;">${fmt}</span></div>`;
+            return `<div>${a}: <span style="font-variant-numeric:tabular-nums;">${formatDistance(v)}</span></div>`;
           }).join("")}`;
         tooltip.innerHTML = tipHTML;
         tooltip.style.opacity = 1;
